@@ -25,8 +25,9 @@ public class MyApplication extends Application implements Application.ActivityLi
 
     UsageStatsManager mUsageStatsManager;
     UsageStats currentForegndPackage;
-    Date startTime = new Date();
-    Date endTime = new Date();
+    UsageStats tempForegndPackage = null;
+    long startTime;
+    long endTime;
 
     private static final String TAG = MyApplication.class.getSimpleName();
     private Handler handler;
@@ -42,9 +43,10 @@ public class MyApplication extends Application implements Application.ActivityLi
 
     public void checkForegroundApp() {
 
+
         long time = System.currentTimeMillis();
-        // We get usage stats for the last 10 seconds
-        List<UsageStats> stats = mUsageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, time - 1000*10, time);
+        // We get usage stats for the last 1000 seconds
+        List<UsageStats> stats = mUsageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, time - 1000*1000, time);
         // Sort the stats by the last time used
         if(stats != null) {
             SortedMap<Long,UsageStats> mySortedMap = new TreeMap<>();
@@ -54,8 +56,24 @@ public class MyApplication extends Application implements Application.ActivityLi
 
             if(mySortedMap != null && !mySortedMap.isEmpty()) {
                 currentForegndPackage =  mySortedMap.get(mySortedMap.lastKey());
-                Log.v(TAG, currentForegndPackage.getPackageName());
+                if(tempForegndPackage == null) { //first time
+                    startTime = System.currentTimeMillis();
+                    tempForegndPackage = mySortedMap.get(mySortedMap.lastKey());
+
+                }
+                Log.v(TAG, "Current Foreground App: " + currentForegndPackage.getPackageName());
             }
+        }
+
+        if(currentForegndPackage.getPackageName().contentEquals(tempForegndPackage.getPackageName())) {
+
+            endTime = System.currentTimeMillis();
+            Log.v(TAG, "Start time: " + startTime);
+            Log.v(TAG, "End time: " + endTime);
+            Log.v(TAG, "Desired interval: " + ((endTime - startTime) / 1000) + " sec");
+            startTime = endTime;
+            endTime = 0;
+            tempForegndPackage = currentForegndPackage;
         }
     }
 
@@ -65,7 +83,7 @@ public class MyApplication extends Application implements Application.ActivityLi
 
         mUsageStatsManager = (UsageStatsManager) getApplicationContext()
                 .getSystemService("usagestats"); //Context.USAGE_STATS_SERVICE
-        //startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS));
+
         registerActivityLifecycleCallbacks(this);
 
         handler = new Handler(getMainLooper());
@@ -89,6 +107,8 @@ public class MyApplication extends Application implements Application.ActivityLi
 
     @Override
     public void onActivityPaused(Activity activity) {
+
+
         handler.postDelayed(runDetect, 1000);
     }
 
