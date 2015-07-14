@@ -5,29 +5,71 @@ package com.example.adrianhsu.getforegroundappusage;
  */
 import android.app.Activity;
 import android.app.Application;
+import android.app.usage.UsageStats;
+import android.app.usage.UsageStatsManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.Settings;
+import android.content.Intent;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+
+import java.util.Date;
+import java.util.List;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 public class MyApplication extends Application implements Application.ActivityLifecycleCallbacks {
 
+
+    UsageStatsManager mUsageStatsManager;
+    UsageStats currentForegndPackage;
+    Date startTime = new Date();
+    Date endTime = new Date();
+
     private static final String TAG = MyApplication.class.getSimpleName();
     private Handler handler;
+
     private Runnable runDetect = new Runnable() {
         @Override
         public void run() {
-            //detect();
+
             handler.postDelayed(this, 1000);
-            Log.d( TAG ,"LOL");
+            checkForegroundApp();
         }
     };
+
+    public void checkForegroundApp() {
+
+        long time = System.currentTimeMillis();
+        // We get usage stats for the last 10 seconds
+        List<UsageStats> stats = mUsageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, time - 1000*10, time);
+        // Sort the stats by the last time used
+        if(stats != null) {
+            SortedMap<Long,UsageStats> mySortedMap = new TreeMap<>();
+            for (UsageStats usageStats : stats) {
+                mySortedMap.put(usageStats.getLastTimeUsed(),usageStats);
+            }
+
+            if(mySortedMap != null && !mySortedMap.isEmpty()) {
+                currentForegndPackage =  mySortedMap.get(mySortedMap.lastKey());
+                Log.v(TAG, currentForegndPackage.getPackageName());
+            }
+        }
+    }
 
     @Override
     public void onCreate() {
         super.onCreate();
 
+        mUsageStatsManager = (UsageStatsManager) getApplicationContext()
+                .getSystemService("usagestats"); //Context.USAGE_STATS_SERVICE
+        //startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS));
         registerActivityLifecycleCallbacks(this);
+
         handler = new Handler(getMainLooper());
+
     }
 
     @Override
