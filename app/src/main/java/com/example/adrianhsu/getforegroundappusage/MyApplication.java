@@ -26,8 +26,8 @@ public class MyApplication extends Application implements Application.ActivityLi
     UsageStatsManager mUsageStatsManager;
     UsageStats currentForegndPackage;
     UsageStats tempForegndPackage = null;
-    long startTime;
-    long endTime;
+    static long startTime;
+    static long endTime;
 
     private static final String TAG = MyApplication.class.getSimpleName();
     private Handler handler;
@@ -55,25 +55,32 @@ public class MyApplication extends Application implements Application.ActivityLi
             }
 
             if(mySortedMap != null && !mySortedMap.isEmpty()) {
-                currentForegndPackage =  mySortedMap.get(mySortedMap.lastKey());
-                if(tempForegndPackage == null) { //first time
-                    startTime = System.currentTimeMillis();
-                    tempForegndPackage = mySortedMap.get(mySortedMap.lastKey());
-
+                if(mySortedMap.get(mySortedMap.lastKey()).getPackageName().contentEquals( "com.android.systemui" )
+                        || mySortedMap.get(mySortedMap.lastKey()).getPackageName().contentEquals( "com.asus.launcher" )) {
+                    return;
                 }
-                Log.v(TAG, "Current Foreground App: " + currentForegndPackage.getPackageName());
+                currentForegndPackage =  mySortedMap.get(mySortedMap.lastKey());
+                if(tempForegndPackage == null ) { //first time
+                    startTime = System.currentTimeMillis();
+                    tempForegndPackage = currentForegndPackage;
+                }
+                else {
+                    Log.v(TAG, "Current Foreground App: " + currentForegndPackage.getPackageName());
+                    Log.v(TAG, "Temp Foreground App: " + tempForegndPackage.getPackageName());
+
+                    if (!(currentForegndPackage.getPackageName().contentEquals(tempForegndPackage.getPackageName()))) {
+
+                        endTime = System.currentTimeMillis();
+                        Log.v(TAG, "Start time: " + startTime);
+                        Log.v(TAG, "End time: " + endTime);
+                        Log.v(TAG, "Desired interval: " + ((endTime - startTime) / 1000) + " sec");
+                        startTime = System.currentTimeMillis();
+                        endTime = 0;
+                        tempForegndPackage = currentForegndPackage;
+                    }
+                }
             }
-        }
 
-        if(currentForegndPackage.getPackageName().contentEquals(tempForegndPackage.getPackageName())) {
-
-            endTime = System.currentTimeMillis();
-            Log.v(TAG, "Start time: " + startTime);
-            Log.v(TAG, "End time: " + endTime);
-            Log.v(TAG, "Desired interval: " + ((endTime - startTime) / 1000) + " sec");
-            startTime = endTime;
-            endTime = 0;
-            tempForegndPackage = currentForegndPackage;
         }
     }
 
