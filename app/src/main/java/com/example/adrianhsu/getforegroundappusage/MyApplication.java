@@ -29,6 +29,9 @@ public class MyApplication extends Application implements Application.ActivityLi
     static long startTime;
     static long endTime;
 
+    static boolean isFirstTime = true;
+    static long delay = 0;
+
     private static final String TAG = MyApplication.class.getSimpleName();
     private Handler handler;
 
@@ -45,6 +48,7 @@ public class MyApplication extends Application implements Application.ActivityLi
     public void checkForegroundApp() {
 
         long time = System.currentTimeMillis();
+
         // We get usage stats for the last 1000 seconds
 
         mUsageStatsManager = (UsageStatsManager) getApplicationContext()
@@ -61,8 +65,12 @@ public class MyApplication extends Application implements Application.ActivityLi
             if(mySortedMap != null && !mySortedMap.isEmpty()) {
                 if(mySortedMap.get(mySortedMap.lastKey()).getPackageName().contentEquals( "com.android.systemui" )
                         || mySortedMap.get(mySortedMap.lastKey()).getPackageName().contentEquals( "com.asus.launcher" )) {
+                    if(!isFirstTime) {
+                        delay += 1000;
+                    }
                     return;
                 }
+                isFirstTime = false;
                 currentForegndPackage =  mySortedMap.get(mySortedMap.lastKey());
                 if(tempForegndPackage == null ) { //first time
                     startTime = System.currentTimeMillis();
@@ -75,13 +83,17 @@ public class MyApplication extends Application implements Application.ActivityLi
                     if (currentForegndPackage.getPackageName().contentEquals(tempForegndPackage.getPackageName())) {
 
                         tempForegndPackage = currentForegndPackage;
+
                     } else {
-                        endTime = tempForegndPackage.getLastTimeUsed();
+                        Log.v(TAG, "delay: " + delay);
+                        endTime = System.currentTimeMillis() - delay;
+                        delay = 0;
                         Log.v(TAG, "Start time: " + startTime);
                         Log.v(TAG, "End time: " + endTime);
                         Log.v(TAG, "Desired interval: " + ((endTime - startTime) / 1000) + " sec");
                         startTime = System.currentTimeMillis();
                         endTime = 0;
+
                         tempForegndPackage = currentForegndPackage;
                     }
                 }
@@ -111,6 +123,8 @@ public class MyApplication extends Application implements Application.ActivityLi
 
     @Override
     public void onActivityResumed(Activity activity) {
+
+        checkForegroundApp();
         handler.removeCallbacks(runDetect);
     }
 
